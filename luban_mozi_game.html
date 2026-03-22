@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>机关论道 · 翻墙记</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    background: #1a2e1a;
+    font-family: 'Noto Serif SC', '宋体', serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    image-rendering: pixelated;
+  }
+
+  /* ===== OVERLAY / MODAL ===== */
+  #overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.72);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    transition: opacity 0.4s;
+  }
+  #overlay.hidden { opacity: 0; pointer-events: none; }
+
+  .dialog-box {
+    background: #2d4a2d;
+    border: 4px solid #7ab87a;
+    border-radius: 2px;
+    padding: 0;
+    max-width: 520px;
+    width: 90%;
+    box-shadow: 6px 6px 0 #1a2e1a, inset 0 0 0 2px #3d6e3d;
+    image-rendering: pixelated;
+    position: relative;
+  }
+
+  .dialog-title-bar {
+    background: #4a8a4a;
+    border-bottom: 4px solid #7ab87a;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .dialog-title-bar .pixel-icon {
+    width: 16px; height: 16px;
+    display: inline-block;
+  }
+
+  .dialog-title-bar span {
+    color: #e8f5e8;
+    font-size: 13px;
+    letter-spacing: 2px;
+    font-weight: bold;
+    text-shadow: 2px 2px 0 #1a2e1a;
+  }
+
+  .dialog-body {
+    padding: 20px 20px 16px;
+    color: #d4f0d4;
+    font-size: 15px;
+    line-height: 1.9;
+    min-height: 80px;
+    text-shadow: 1px 1px 0 #1a2e1a;
+  }
+
+  .dialog-body .highlight {
+    color: #ffd97a;
+    font-weight: bold;
+  }
+
+  .dialog-body .rule-title {
+    display: inline-block;
+    background: #4a7a4a;
+    border: 2px solid #7ab87a;
+    color: #ffd97a;
+    padding: 2px 10px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    letter-spacing: 1px;
+  }
+
+  .dialog-footer {
+    padding: 8px 16px 14px;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .pixel-btn {
+    background: #4a8a4a;
+    border: 3px solid #7ab87a;
+    color: #e8f5e8;
+    padding: 8px 22px;
+    font-family: inherit;
+    font-size: 13px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    text-shadow: 1px 1px 0 #1a2e1a;
+    box-shadow: 3px 3px 0 #1a2e1a;
+    transition: transform 0.1s;
+    image-rendering: pixelated;
+  }
+  .pixel-btn:hover {
+    background: #5aaa5a;
+    transform: translate(-1px,-1px);
+    box-shadow: 4px 4px 0 #1a2e1a;
+  }
+  .pixel-btn:active {
+    transform: translate(2px,2px);
+    box-shadow: 1px 1px 0 #1a2e1a;
+  }
+
+  .pixel-btn.danger {
+    background: #8a4a2a;
+    border-color: #d4824a;
+    color: #ffe0c8;
+  }
+  .pixel-btn.danger:hover { background: #aa5a2a; }
+
+  /* ===== GAME AREA ===== */
+  #game-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0px;
+    position: relative;
+  }
+
+  /* ===== STATUS BAR ===== */
+  #status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 620px;
+    padding: 6px 10px;
+    background: #1e3a1e;
+    border: 3px solid #4a7a4a;
+    margin-bottom: 4px;
+  }
+
+  .player-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .player-label {
+    color: #7ab87a;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-shadow: 1px 1px 0 #000;
+  }
+
+  .wall-count {
+    display: flex;
+    gap: 3px;
+    align-items: center;
+  }
+
+  .wall-pip {
+    width: 10px; height: 10px;
+    border: 2px solid #555;
+    background: #333;
+  }
+  .wall-pip.active-mozi { background: #2a2a2a; border-color: #aaa; }
+  .wall-pip.active-luban { background: #8b5a2a; border-color: #c8843a; }
+
+  .turn-indicator {
+    color: #ffd97a;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-shadow: 2px 2px 0 #000;
+    font-weight: bold;
+  }
+
+  /* ===== MODE TOGGLE ===== */
+  #mode-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .mode-btn {
+    background: #2d4a2d;
+    border: 3px solid #4a7a4a;
+    color: #7ab87a;
+    padding: 5px 16px;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    text-shadow: 1px 1px 0 #000;
+    box-shadow: 2px 2px 0 #000;
+  }
+  .mode-btn.selected {
+    background: #4a8a4a;
+    border-color: #7ab87a;
+    color: #e8f5e8;
+  }
+  .mode-btn:hover { background: #3d6e3d; }
+
+  /* ===== CANVAS ===== */
+  #board-wrap {
+    position: relative;
+    perspective: 800px;
+  }
+
+  #board-canvas {
+    display: block;
+    image-rendering: pixelated;
+    cursor: pointer;
+  }
+
+  /* ===== RESULT OVERLAY ===== */
+  #result-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s;
+  }
+  #result-overlay.show { opacity: 1; pointer-events: all; }
+
+  .result-box {
+    background: #2d4a2d;
+    border: 4px solid #7ab87a;
+    max-width: 540px;
+    width: 90%;
+    box-shadow: 8px 8px 0 #000;
+  }
+
+  .result-title-bar {
+    padding: 10px 16px;
+    border-bottom: 4px solid #7ab87a;
+    font-size: 16px;
+    color: #ffd97a;
+    letter-spacing: 3px;
+    text-shadow: 2px 2px 0 #000;
+    font-weight: bold;
+  }
+  .result-title-bar.win { background: #2a5a2a; }
+  .result-title-bar.lose { background: #5a2a2a; }
+  .result-title-bar.draw { background: #3a3a5a; }
+
+  .result-body {
+    padding: 20px;
+    color: #d4f0d4;
+    font-size: 14px;
+    line-height: 2;
+    text-shadow: 1px 1px 0 #000;
+  }
+
+  .result-footer {
+    padding: 10px 16px 16px;
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+  }
+
+  /* ===== SCENE DECORATIONS ===== */
+  #scene-top, #scene-bottom {
+    position: relative;
+    image-rendering: pixelated;
+  }
+
+  /* ===== ENTRANCE ANIMATION ===== */
+  @keyframes boardSpin {
+    0% { transform: rotateY(-90deg) scale(0.6); opacity: 0; }
+    60% { transform: rotateY(8deg) scale(1.02); opacity: 1; }
+    80% { transform: rotateY(-3deg) scale(0.99); }
+    100% { transform: rotateY(0deg) scale(1); opacity: 1; }
+  }
+  .board-enter {
+    animation: boardSpin 1.0s cubic-bezier(0.23,1,0.32,1) forwards;
+  }
+</style>
+</head>
+<body>
+
+<!-- OVERLAY FOR DIALOGS -->
+<div id="overlay">
+  <div class="dialog-box">
+    <div class="dialog-title-bar">
+      <span id="dialog-title">序章</span>
+    </div>
+    <div class="dialog-body" id="dialog-body"></div>
+    <div class="dialog-footer">
+      <button class="pixel-btn" id="dialog-next-btn" onclick="nextDialog()">下一步 ▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESULT OVERLAY -->
+<div id="result-overlay">
+  <div class="result-box" id="result-box">
+    <div class="result-title-bar" id="result-title-bar">结果</div>
+    <div class="result-body" id="result-body"></div>
+    <div class="result-footer">
+      <button class="pixel-btn" onclick="restartGame()">再战一局 ↺</button>
+    </div>
+  </div>
+</div>
+
+<!-- GAME UI -->
+<div id="game-area" style="opacity:0; transition: opacity 0.6s;">
+  <div id="status-bar">
+    <div class="player-info">
+      <span class="player-label">墨翟</span>
+      <div class="wall-count" id="mozi-walls"></div>
+    </div>
+    <div class="turn-indicator" id="turn-indicator">公输班先行</div>
+    <div class="player-info">
+      <div class="wall-count" id="luban-walls"></div>
+      <span class="player-label">公输班</span>
+    </div>
+  </div>
+
+  <div id="mode-bar">
+    <button class="mode-btn selected" id="btn-move" onclick="setMode('move')">移动棋子 ✦</button>
+    <button class="mode-btn" id="btn-wall" onclick="setMode('wall')">放置墨线 ━</button>
+  </div>
+
+  <div id="board-wrap">
+    <canvas id="board-canvas" id="board-canvas"></canvas>
+  </div>
+</div>
+
+<script>
+// =====================================================================
+// CONSTANTS & STATE
+// =====================================================================
+const COLS = 9, ROWS = 9;
+const CELL = 52;          // px per cell
+const WALL_T = 8;         // wall thickness
+const GAP = 6;            // gap between cells
+const STEP = CELL + GAP;  // cell stride
+const MARGIN = 28;        // canvas margin
+const CANVAS_W = MARGIN * 2 + STEP * 9 - GAP;
+const CANVAS_H = CANVAS_W;
+
+// Walls stored as sets. Horizontal wall at (r,c) blocks passage between row r and r+1,
+// spanning columns c and c+1. Vertical wall at (r,c) blocks passage between col c and c+1,
+// spanning rows r and r+1.
+// Key format: "h_r_c" or "v_r_c"
+let hWalls = new Set(); // horizontal walls (block up/down movement)
+let vWalls = new Set(); // vertical walls (block left/right movement)
+
+let moziPos  = { r: 8, c: 4 }; // player, starts bottom center, goal r=0
+let lubanPos = { r: 0, c: 4 }; // ai,     starts top center,    goal r=8
+
+let moziWalls  = 10;
+let lubanWalls = 10;
+
+let currentTurn = 'luban'; // luban goes first
+let playerMode = 'move';   // 'move' or 'wall'
+let wallPreview = null;     // { type:'h'|'v', r, c, valid }
+let gameOver = false;
+let dialogStep = 0;
+let boardVisible = false;
+
+const canvas = document.getElementById('board-canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = CANVAS_W;
+canvas.height = CANVAS_H;
+
+// =====================================================================
+// DIALOG CONTENT
+// =====================================================================
+const dialogs = [
+  {
+    title: '序章 · 一',
+    html: `你是<span class="highlight">墨翟</span>。<br>最近，你的邻居公输班造了个鸟玩具，天天在屋顶上飞，十分吵闹，害你看不进书。`
+  },
+  {
+    title: '序章 · 二',
+    html: `你认为公输班<span class="highlight">玩物丧志</span>，决定手动帮他防沉迷，把鸟削了。`
+  },
+  {
+    title: '序章 · 三',
+    html: `公输班则认为你看书看坏了脑子，决定帮你把<span class="highlight">书房一把火烧了</span>。`
+  },
+  {
+    title: '序章 · 四',
+    html: `今晚，你俩在<span class="highlight">翻墙时撞了个正着</span>，两处阴谋变成了一处战场——`
+  },
+  // step 4 = show board
+  {
+    title: '规则 · 棋盘',
+    html: `你们的院子是规整的 <span class="highlight">9×9 方格</span>（理工宿舍都是这样的）。`
+  },
+  {
+    title: '规则 · 道具',
+    html: `你有<span class="highlight">十根墨线</span>，公输班有<span class="highlight">十架云梯</span>。<br>此刻，它们不再是你们的办公用品，而是用来<span class="highlight">挡路的墙</span>。`
+  },
+  {
+    title: '规则 · 行动',
+    html: `你们<span class="highlight">轮流行动</span>，轮到你时，要么<span class="highlight">移动一格</span>（上下左右），要么<span class="highlight">放置一条墨线</span>（绊倒公输班用，他别想跨过去）。`
+  },
+  {
+    title: '规则 · 胜利',
+    html: `<span class="rule-title">「我全对，听我的」</span><br>谁先抵达<span class="highlight">对方的底线</span>谁就赢。`
+  },
+  {
+    title: '规则 · 禁忌',
+    html: `<span class="rule-title">「比赛第一，邻居第二」</span><br>不能把对方的路<span class="highlight">完全堵死</span>，必须至少留一条活路。`
+  },
+  {
+    title: '开始！',
+    html: `现在，请守护你的书房，抓住邻居的鸟，<span class="highlight">证明你才是正确的！</span>`,
+    lastBtn: '出发！▶'
+  }
+];
+
+let currentDialogIdx = 0;
+
+function showDialog(idx) {
+  const d = dialogs[idx];
+  document.getElementById('dialog-title').textContent = d.title;
+  document.getElementById('dialog-body').innerHTML = d.html;
+  const btn = document.getElementById('dialog-next-btn');
+  btn.textContent = d.lastBtn || '下一步 ▶';
+  document.getElementById('overlay').classList.remove('hidden');
+}
+
+function nextDialog() {
+  currentDialogIdx++;
+  // After dialog 3 (index 3), hide overlay and show board
+  if (currentDialogIdx === 4) {
+    document.getElementById('overlay').classList.add('hidden');
+    showBoard();
+    // After 1.5s, show rules dialogs
+    setTimeout(() => {
+      showDialog(4);
+    }, 1600);
+    return;
+  }
+  if (currentDialogIdx >= dialogs.length) {
+    // Start game
+    document.getElementById('overlay').classList.add('hidden');
+    startGame();
+    return;
+  }
+  showDialog(currentDialogIdx);
+}
+
+function showBoard() {
+  const ga = document.getElementById('game-area');
+  ga.style.opacity = '1';
+  const wrap = document.getElementById('board-wrap');
+  wrap.classList.add('board-enter');
+  boardVisible = true;
+  drawBoard();
+  updateUI();
+}
+
+// =====================================================================
+// GAME INIT
+// =====================================================================
+function startGame() {
+  gameOver = false;
+  document.getElementById('result-overlay').classList.remove('show');
+  drawBoard();
+  updateUI();
+  // AI goes first
+  if (currentTurn === 'luban') {
+    setTimeout(doAITurn, 700);
+  }
+}
+
+function restartGame() {
+  hWalls = new Set();
+  vWalls = new Set();
+  moziWallSet.clear();
+  lubanWallSet.clear();
+  moziPos  = { r: 8, c: 4 };
+  lubanPos = { r: 0, c: 4 };
+  moziWalls  = 10;
+  lubanWalls = 10;
+  currentTurn = 'luban';
+  playerMode = 'move';
+  wallPreview = null;
+  gameOver = false;
+  setMode('move');
+  document.getElementById('result-overlay').classList.remove('show');
+  drawBoard();
+  updateUI();
+  setTimeout(doAITurn, 700);
+}
+
+// =====================================================================
+// COORDINATE HELPERS
+// =====================================================================
+function cellTopLeft(r, c) {
+  return {
+    x: MARGIN + c * STEP,
+    y: MARGIN + r * STEP
+  };
+}
+
+function posFromPixel(px, py) {
+  // Returns {r, c} of cell, or null
+  const ox = px - MARGIN;
+  const oy = py - MARGIN;
+  const c = Math.floor(ox / STEP);
+  const r = Math.floor(oy / STEP);
+  if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return null;
+  // Check we're inside cell not in gap
+  const lx = ox - c * STEP;
+  const ly = oy - r * STEP;
+  if (lx > CELL || ly > CELL) return null; // in gap
+  return { r, c };
+}
+
+// For wall placement: figure out which wall gap we're near
+function wallFromPixel(px, py) {
+  const ox = px - MARGIN;
+  const oy = py - MARGIN;
+  // Determine if near horizontal gap (between rows) or vertical gap (between cols)
+  // Each grid unit is STEP = CELL+GAP wide
+  // A horizontal wall sits in the GAP below row r, spanning cols c and c+1
+  // Let's find nearest wall slot
+
+  // Try horizontal wall: y is in gap between row r and r+1
+  // Gap region y: MARGIN + r*STEP + CELL  to  MARGIN + r*STEP + CELL + GAP
+  // Wall spans c*STEP to (c+2)*STEP horizontally (two cells)
+  
+  let bestWall = null;
+  let bestDist = 20;
+
+  // Check horizontal walls
+  for (let r = 0; r < ROWS - 1; r++) {
+    const gy = MARGIN + r * STEP + CELL + GAP / 2;
+    for (let c = 0; c < COLS - 1; c++) {
+      const wx = MARGIN + c * STEP + STEP; // center of wall spanning c and c+1
+      const dist = Math.hypot(px - wx, py - gy);
+      if (dist < bestDist) { bestDist = dist; bestWall = { type: 'h', r, c }; }
+    }
+  }
+  // Check vertical walls
+  for (let c = 0; c < COLS - 1; c++) {
+    const gx = MARGIN + c * STEP + CELL + GAP / 2;
+    for (let r = 0; r < ROWS - 1; r++) {
+      const wy = MARGIN + r * STEP + STEP;
+      const dist = Math.hypot(px - gx, py - wy);
+      if (dist < bestDist) { bestDist = dist; bestWall = { type: 'v', r, c }; }
+    }
+  }
+  return bestWall;
+}
+
+// =====================================================================
+// MOVEMENT & WALL VALIDATION
+// =====================================================================
+function canMove(from, dr, dc, hw, vw) {
+  const nr = from.r + dr;
+  const nc = from.c + dc;
+  if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) return false;
+  // Wall blocking rules:
+  // Horizontal wall h_r_c blocks movement between row r and r+1 at BOTH column c and column c+1.
+  //   So moving down from (r,c): blocked if hw has h_r_c OR h_r_(c-1)
+  //   Moving up from (r,c) to (r-1,c): blocked if hw has h_(r-1)_c OR h_(r-1)_(c-1)
+  // Vertical wall v_r_c blocks movement between col c and c+1 at BOTH row r and row r+1.
+  //   Moving right from (r,c): blocked if vw has v_r_c OR v_(r-1)_c
+  //   Moving left from (r,c) to (r,c-1): blocked if vw has v_r_(c-1) OR v_(r-1)_(c-1)
+  if (dr === 1) {
+    // Moving down: wall h_from.r_from.c or h_from.r_(from.c-1)
+    if (hw.has(`h_${from.r}_${from.c}`)) return false;
+    if (from.c > 0 && hw.has(`h_${from.r}_${from.c-1}`)) return false;
+  }
+  if (dr === -1) {
+    // Moving up: wall h_(from.r-1)_from.c or h_(from.r-1)_(from.c-1)
+    if (hw.has(`h_${from.r-1}_${from.c}`)) return false;
+    if (from.c > 0 && hw.has(`h_${from.r-1}_${from.c-1}`)) return false;
+  }
+  if (dc === 1) {
+    // Moving right: wall v_from.r_from.c or v_(from.r-1)_from.c
+    if (vw.has(`v_${from.r}_${from.c}`)) return false;
+    if (from.r > 0 && vw.has(`v_${from.r-1}_${from.c}`)) return false;
+  }
+  if (dc === -1) {
+    // Moving left: wall v_from.r_(from.c-1) or v_(from.r-1)_(from.c-1)
+    if (vw.has(`v_${from.r}_${from.c-1}`)) return false;
+    if (from.r > 0 && vw.has(`v_${from.r-1}_${from.c-1}`)) return false;
+  }
+  return true;
+}
+
+function getNeighbors(pos, hw, vw) {
+  const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+  const result = [];
+  for (const [dr,dc] of dirs) {
+    if (canMove(pos, dr, dc, hw, vw)) result.push({ r: pos.r+dr, c: pos.c+dc });
+  }
+  return result;
+}
+
+// BFS shortest path length from pos to target row (goalRow)
+function bfsDistance(pos, goalRow, hw, vw, blocked) {
+  const visited = Array.from({length:ROWS}, ()=>new Array(COLS).fill(false));
+  const queue = [{ r: pos.r, c: pos.c, d: 0 }];
+  visited[pos.r][pos.c] = true;
+  while (queue.length) {
+    const { r, c, d } = queue.shift();
+    if (r === goalRow) return d;
+    for (const nb of getNeighbors({r,c}, hw, vw)) {
+      if (visited[nb.r][nb.c]) continue;
+      if (blocked && nb.r === blocked.r && nb.c === blocked.c) continue;
+      visited[nb.r][nb.c] = true;
+      queue.push({ r:nb.r, c:nb.c, d:d+1 });
+    }
+  }
+  return Infinity;
+}
+
+// BFS path as array
+function bfsPath(pos, goalRow, hw, vw, blocked) {
+  const visited = Array.from({length:ROWS}, ()=>new Array(COLS).fill(false));
+  const prev = Array.from({length:ROWS}, ()=>new Array(COLS).fill(null));
+  const queue = [{ r: pos.r, c: pos.c }];
+  visited[pos.r][pos.c] = true;
+  let found = null;
+  while (queue.length && !found) {
+    const cur = queue.shift();
+    if (cur.r === goalRow) { found = cur; break; }
+    for (const nb of getNeighbors(cur, hw, vw)) {
+      if (visited[nb.r][nb.c]) continue;
+      if (blocked && nb.r === blocked.r && nb.c === blocked.c) continue;
+      visited[nb.r][nb.c] = true;
+      prev[nb.r][nb.c] = cur;
+      queue.push(nb);
+    }
+  }
+  if (!found) return null;
+  const path = [];
+  let cur = found;
+  while (cur) { path.unshift(cur); cur = prev[cur.r][cur.c]; }
+  return path;
+}
+
+function wallKey(type, r, c) { return `${type}_${r}_${c}`; }
+
+function wallConflicts(type, r, c, hw, vw) {
+  // Horizontal wall h_r_c spans 2 segments: (r,c) and (r,c+1) vertically crossing
+  // Vertical wall v_r_c spans 2 segments: (r,c) and (r+1,c) horizontally crossing
+  if (type === 'h') {
+    if (hw.has(wallKey('h', r, c)))   return true; // exact same
+    if (hw.has(wallKey('h', r, c-1))) return true; // overlaps left
+    if (hw.has(wallKey('h', r, c+1))) return true; // overlaps right
+    if (vw.has(wallKey('v', r, c)))   return true; // crosses at center post
+  } else {
+    if (vw.has(wallKey('v', r, c)))   return true;
+    if (vw.has(wallKey('v', r-1, c))) return true;
+    if (vw.has(wallKey('v', r+1, c))) return true;
+    if (hw.has(wallKey('h', r, c)))   return true; // crosses at center post
+  }
+  return false;
+}
+
+function isWallValid(type, r, c) {
+  if (type === 'h') {
+    if (r < 0 || r >= ROWS-1 || c < 0 || c >= COLS-1) return false;
+  } else {
+    if (r < 0 || r >= ROWS-1 || c < 0 || c >= COLS-1) return false;
+  }
+  if (wallConflicts(type, r, c, hWalls, vWalls)) return false;
+  // Test path not blocked
+  const testH = new Set(hWalls);
+  const testV = new Set(vWalls);
+  if (type === 'h') testH.add(wallKey('h',r,c)); else testV.add(wallKey('v',r,c));
+  const md = bfsDistance(moziPos, 0, testH, testV, lubanPos);
+  const ld = bfsDistance(lubanPos, 8, testH, testV, moziPos);
+  return md < Infinity && ld < Infinity;
+}
+
+// =====================================================================
+// DRAWING
+// =====================================================================
+// Pixel art sprites drawn with canvas rect primitives
+
+function drawMozi(cx, cy) {
+  // Pixel art: big hat, white coat, black pants
+  const s = 2; // scale
+  ctx.save();
+  ctx.translate(cx, cy);
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.fillRect(-10*s, 8*s, 20*s, 3*s);
+  // Black pants
+  ctx.fillStyle = '#222';
+  ctx.fillRect(-5*s, 4*s, 4*s, 6*s);
+  ctx.fillRect(1*s, 4*s, 4*s, 6*s);
+  // White coat
+  ctx.fillStyle = '#e8e8d8';
+  ctx.fillRect(-6*s, -2*s, 12*s, 8*s);
+  // Coat collar/lapels
+  ctx.fillStyle = '#ccc';
+  ctx.fillRect(-2*s, -2*s, 4*s, 4*s);
+  // Head
+  ctx.fillStyle = '#d4a96a';
+  ctx.fillRect(-4*s, -9*s, 8*s, 7*s);
+  // Big hat brim
+  ctx.fillStyle = '#3a3020';
+  ctx.fillRect(-10*s, -10*s, 20*s, 3*s);
+  // Hat top
+  ctx.fillStyle = '#2a2015';
+  ctx.fillRect(-6*s, -17*s, 12*s, 8*s);
+  // Eyes
+  ctx.fillStyle = '#1a1010';
+  ctx.fillRect(-2*s, -7*s, 2*s, 2*s);
+  ctx.fillRect(1*s, -7*s, 2*s, 2*s);
+  // Arms
+  ctx.fillStyle = '#e8e8d8';
+  ctx.fillRect(-10*s, -2*s, 4*s, 5*s);
+  ctx.fillRect(6*s, -2*s, 4*s, 5*s);
+  ctx.restore();
+}
+
+function drawLuban(cx, cy) {
+  // Pixel art: black clothes, white scarf, black high ponytail
+  const s = 2;
+  ctx.save();
+  ctx.translate(cx, cy);
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.fillRect(-10*s, 8*s, 20*s, 3*s);
+  // Black pants
+  ctx.fillStyle = '#181818';
+  ctx.fillRect(-5*s, 4*s, 4*s, 6*s);
+  ctx.fillRect(1*s, 4*s, 4*s, 6*s);
+  // Black top
+  ctx.fillStyle = '#1e1e1e';
+  ctx.fillRect(-6*s, -2*s, 12*s, 8*s);
+  // White scarf
+  ctx.fillStyle = '#e8ece8';
+  ctx.fillRect(-5*s, -3*s, 10*s, 4*s);
+  ctx.fillRect(-3*s, 1*s, 3*s, 3*s);
+  // Head
+  ctx.fillStyle = '#c49060';
+  ctx.fillRect(-4*s, -9*s, 8*s, 7*s);
+  // Hair (black)
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(-4*s, -11*s, 8*s, 3*s);
+  // High ponytail
+  ctx.fillRect(2*s, -19*s, 3*s, 10*s);
+  ctx.fillRect(0*s, -21*s, 5*s, 4*s);
+  // Eyes
+  ctx.fillStyle = '#100808';
+  ctx.fillRect(-2*s, -7*s, 2*s, 2*s);
+  ctx.fillRect(1*s, -7*s, 2*s, 2*s);
+  // Arms
+  ctx.fillStyle = '#1e1e1e';
+  ctx.fillRect(-10*s, -2*s, 4*s, 5*s);
+  ctx.fillRect(6*s, -2*s, 4*s, 5*s);
+  ctx.restore();
+}
+
+function drawMoziWall(x1, y1, x2, y2) {
+  // Thick black rope
+  const dx = x2-x1, dy = y2-y1;
+  const len = Math.hypot(dx,dy);
+  ctx.save();
+  ctx.translate(x1,y1);
+  ctx.rotate(Math.atan2(dy,dx));
+  // Rope segments
+  for (let i=0; i<len; i+=8) {
+    const t = i/len;
+    ctx.fillStyle = i%16<8 ? '#1a1a1a' : '#2a2a2a';
+    ctx.fillRect(i, -4, 8, 8);
+  }
+  // Knot ends
+  ctx.fillStyle = '#111';
+  ctx.fillRect(-2, -5, 6, 10);
+  ctx.fillRect(len-4, -5, 6, 10);
+  ctx.restore();
+}
+
+function drawLubanWall(x1, y1, x2, y2) {
+  // Wooden ladder
+  const dx = x2-x1, dy = y2-y1;
+  const len = Math.hypot(dx,dy);
+  ctx.save();
+  ctx.translate(x1,y1);
+  ctx.rotate(Math.atan2(dy,dx));
+  // Side rails (wood brown)
+  ctx.fillStyle = '#8b5a2a';
+  ctx.fillRect(0, -5, len, 4);
+  ctx.fillRect(0, 2, len, 4);
+  // Rungs
+  ctx.fillStyle = '#a06a30';
+  for (let i=8; i<len-4; i+=14) {
+    ctx.fillRect(i, -4, 6, 10);
+  }
+  // Highlights
+  ctx.fillStyle = '#c8843a';
+  ctx.fillRect(0, -5, len, 2);
+  ctx.restore();
+}
+
+function drawPixelBird(cx, cy) {
+  // Big wooden mechanical bird
+  const s = 3;
+  ctx.save();
+  ctx.translate(cx, cy);
+  // Body
+  ctx.fillStyle = '#8b5a1a';
+  ctx.fillRect(-12*s,-5*s,24*s,12*s);
+  // Head
+  ctx.fillStyle = '#7a4a15';
+  ctx.fillRect(8*s,-9*s,10*s,8*s);
+  // Beak
+  ctx.fillStyle = '#c8843a';
+  ctx.fillRect(17*s,-7*s,6*s,4*s);
+  // Eye
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(13*s,-8*s,3*s,3*s);
+  ctx.fillStyle = '#ffd97a';
+  ctx.fillRect(14*s,-7*s,1*s,1*s);
+  // Wing
+  ctx.fillStyle = '#6a4010';
+  ctx.fillRect(-10*s,-13*s,16*s,8*s);
+  ctx.fillStyle = '#5a3010';
+  ctx.fillRect(-14*s,-11*s,8*s,5*s);
+  // Tail feathers
+  ctx.fillStyle = '#7a4a15';
+  ctx.fillRect(-18*s,-3*s,8*s,6*s);
+  ctx.fillStyle = '#6a3a10';
+  ctx.fillRect(-20*s,-5*s,5*s,4*s);
+  ctx.fillRect(-20*s,2*s,5*s,4*s);
+  // Gear details
+  ctx.fillStyle = '#c8843a';
+  ctx.fillRect(-5*s,-2*s,4*s,4*s);
+  ctx.fillRect(-1*s,-3*s,2*s,6*s);
+  ctx.fillRect(-3*s,-4*s,6*s,2*s);
+  ctx.fillRect(-3*s,3*s,6*s,2*s);
+  // Legs
+  ctx.fillStyle = '#8b5a1a';
+  ctx.fillRect(-4*s,7*s,3*s,6*s);
+  ctx.fillRect(2*s,7*s,3*s,6*s);
+  ctx.restore();
+}
+
+function drawPixelBookroom(cx, cy) {
+  // Pixel bookroom
+  const s = 3;
+  ctx.save();
+  ctx.translate(cx, cy);
+  // Floor
+  ctx.fillStyle = '#5a3a1a';
+  ctx.fillRect(-30*s,5*s,60*s,4*s);
+  // Desk
+  ctx.fillStyle = '#7a4a20';
+  ctx.fillRect(-20*s,-2*s,40*s,8*s);
+  ctx.fillStyle = '#6a3a15';
+  ctx.fillRect(-18*s,6*s,6*s,8*s);
+  ctx.fillRect(12*s,6*s,6*s,8*s);
+  // Book on desk
+  ctx.fillStyle = '#2a5a8a';
+  ctx.fillRect(-8*s,-8*s,16*s,6*s);
+  ctx.fillStyle = '#1a3a5a';
+  ctx.fillRect(-8*s,-8*s,2*s,6*s);
+  // Lines on book
+  ctx.fillStyle = '#3a7aaa';
+  for(let i=0;i<3;i++) ctx.fillRect(-5*s,-7*s+i*2*s,10*s,s);
+  // Bookshelf
+  ctx.fillStyle = '#6a3a15';
+  ctx.fillRect(15*s,-20*s,18*s,28*s);
+  // Books on shelf
+  const bcolors = ['#c84a4a','#4a8a4a','#4a4a8a','#8a7a2a','#8a4a7a'];
+  for(let i=0;i<5;i++){
+    ctx.fillStyle = bcolors[i];
+    ctx.fillRect(16*s+i*3*s,-18*s,2*s,10*s);
+  }
+  // Candle
+  ctx.fillStyle = '#e8d8b8';
+  ctx.fillRect(-25*s,-14*s,4*s,12*s);
+  ctx.fillStyle = '#ffd97a';
+  ctx.fillRect(-24*s,-17*s,2*s,4*s);
+  ctx.fillStyle = '#ff9a2a';
+  ctx.fillRect(-24*s,-19*s,2*s,3*s);
+  ctx.restore();
+}
+
+function drawGrassTile(x, y, w, h, dark) {
+  ctx.fillStyle = dark ? '#2d5a1a' : '#357020';
+  ctx.fillRect(x, y, w, h);
+  // Pixel grass detail
+  if (!dark) {
+    ctx.fillStyle = '#2a6018';
+    ctx.fillRect(x+2, y+1, 2, 2);
+    ctx.fillRect(x+w-4, y+2, 2, 3);
+  }
+}
+
+
+
+// Track wall ownership
+const moziWallSet = new Set();
+const lubanWallSet = new Set();
+
+// =====================================================================
+// SCENE DECORATIONS (drawn on separate canvases or above/below)
+// =====================================================================
+function setupScene() {
+  // We'll overlay bird and bookroom as CSS-positioned canvases
+  // Actually draw them on main canvas outside the board area
+  // Let's just use the drawBoard to include decorations
+}
+
+// Expanded canvas to include top and bottom decorations
+function resizeForScene() {
+  const PAD_TOP = 90;
+  const PAD_BOT = 90;
+  canvas.height = CANVAS_H + PAD_TOP + PAD_BOT;
+  canvas.dataset.padTop = PAD_TOP;
+}
+
+function drawScene() {
+  const PAD_TOP = +canvas.dataset.padTop || 0;
+  
+  // Background behind decorations
+  ctx.fillStyle = '#1a2e0a';
+  ctx.fillRect(0, 0, CANVAS_W, canvas.height);
+
+  // Top area - Luban's domain
+  ctx.fillStyle = '#0e1e0e';
+  ctx.fillRect(0, 0, CANVAS_W, PAD_TOP);
+  // Sky gradient
+  const skyGrad = ctx.createLinearGradient(0,0,0,PAD_TOP);
+  skyGrad.addColorStop(0,'#0a1a2a');
+  skyGrad.addColorStop(1,'#1a2e0a');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0,0,CANVAS_W,PAD_TOP);
+  // Stars
+  ctx.fillStyle = '#ffd97a';
+  const stars = [[20,10],[80,15],[150,8],[300,12],[420,6],[500,14],[560,9]];
+  for(const [sx,sy] of stars){ ctx.fillRect(sx,sy,2,2); }
+  // Moon
+  ctx.fillStyle = '#e8e0c0';
+  ctx.fillRect(CANVAS_W-50, 8, 16, 16);
+  ctx.fillStyle = '#0a1a2a';
+  ctx.fillRect(CANVAS_W-47, 8, 14, 14);
+
+  // Draw bird in top center
+  drawPixelBird(CANVAS_W/2, PAD_TOP/2 + 10);
+
+  // Luban goal label
+  ctx.fillStyle = '#c8843a';
+  ctx.font = 'bold 11px "Noto Serif SC", serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('▼ 公输班的屋顶 ▼', CANVAS_W/2, PAD_TOP - 6);
+
+  // Board area offset
+  ctx.save();
+  ctx.translate(0, PAD_TOP);
+  drawBoardContent();
+  ctx.restore();
+
+  // Bottom area - Mozi's domain
+  const botY = PAD_TOP + CANVAS_H;
+  ctx.fillStyle = '#0e1e0e';
+  ctx.fillRect(0, botY, CANVAS_W, canvas.height - botY);
+  const groundGrad = ctx.createLinearGradient(0,botY,0,canvas.height);
+  groundGrad.addColorStop(0,'#1a2e0a');
+  groundGrad.addColorStop(1,'#0a150a');
+  ctx.fillStyle = groundGrad;
+  ctx.fillRect(0,botY,CANVAS_W,canvas.height-botY);
+  // Draw bookroom
+  drawPixelBookroom(CANVAS_W/2, botY + 45);
+  // Mozi goal label
+  ctx.fillStyle = '#4ab8f0';
+  ctx.font = 'bold 11px "Noto Serif SC", serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('▲ 墨翟的书房 ▲', CANVAS_W/2, botY + 8);
+}
+
+function drawBoardContent() {
+  // Draw cells
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const { x, y } = cellTopLeft(r, c);
+      const dark = (r + c) % 2 === 0;
+      drawGrassTile(x, y, CELL, CELL, dark);
+
+      if (!gameOver && currentTurn === 'mozi' && playerMode === 'move') {
+        const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+        for (const [dr,dc] of dirs) {
+          if (moziPos.r+dr===r && moziPos.c+dc===c) {
+            if (canMove(moziPos,dr,dc,hWalls,vWalls) && !(lubanPos.r===r&&lubanPos.c===c)) {
+              ctx.fillStyle = 'rgba(100,220,100,0.35)';
+              ctx.fillRect(x+2,y+2,CELL-4,CELL-4);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Goal lines
+  for (let c = 0; c < COLS; c++) {
+    const { x, y } = cellTopLeft(0, c);
+    ctx.fillStyle = 'rgba(200,132,58,0.2)';
+    ctx.fillRect(x, y, CELL, CELL);
+    ctx.strokeStyle = '#e8883a';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x+1, y+1, CELL-2, CELL-2);
+  }
+  for (let c = 0; c < COLS; c++) {
+    const { x, y } = cellTopLeft(8, c);
+    ctx.fillStyle = 'rgba(74,184,240,0.2)';
+    ctx.fillRect(x, y, CELL, CELL);
+    ctx.strokeStyle = '#4ab8f0';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x+1, y+1, CELL-2, CELL-2);
+  }
+
+  // Wall preview
+  if (wallPreview && currentTurn === 'mozi' && playerMode === 'wall') {
+    const { type, r, c, valid } = wallPreview;
+    ctx.globalAlpha = 0.65;
+    drawWallShapeLocal(type, r, c, false, true, valid);
+    ctx.globalAlpha = 1.0;
+  }
+
+  // Placed walls
+  hWalls.forEach(key => {
+    const [,rs,cs] = key.split('_');
+    drawWallShapeLocal('h', +rs, +cs, true, moziWallSet.has(key), true);
+  });
+  vWalls.forEach(key => {
+    const [,rs,cs] = key.split('_');
+    drawWallShapeLocal('v', +rs, +cs, false, moziWallSet.has(key), true);
+  });
+
+  // Characters
+  const lp = cellTopLeft(lubanPos.r, lubanPos.c);
+  drawLuban(lp.x + CELL/2, lp.y + CELL/2);
+  const mp = cellTopLeft(moziPos.r, moziPos.c);
+  drawMozi(mp.x + CELL/2, mp.y + CELL/2);
+}
+
+function drawWallShapeLocal(type, r, c, isPlaced, isMozi, valid) {
+  if (type === 'h') {
+    const { x: x1, y: y1 } = cellTopLeft(r, c);
+    const { x: x2 } = cellTopLeft(r, c+1);
+    const wy = y1 + CELL + GAP/2;
+    const wx1 = x1;
+    const wx2 = x2 + CELL;
+    if (!isPlaced) {
+      ctx.fillStyle = valid ? 'rgba(80,200,80,0.8)' : 'rgba(220,60,60,0.8)';
+      ctx.fillRect(wx1, wy-4, wx2-wx1, 8);
+    } else if (isMozi) {
+      drawMoziWall(wx1, wy, wx2, wy);
+    } else {
+      drawLubanWall(wx1, wy, wx2, wy);
+    }
+  } else {
+    const { x: x1, y: y1 } = cellTopLeft(r, c);
+    const { y: y2 } = cellTopLeft(r+1, c);
+    const wx = x1 + CELL + GAP/2;
+    const wy1 = y1;
+    const wy2 = y2 + CELL;
+    if (!isPlaced) {
+      ctx.fillStyle = valid ? 'rgba(80,200,80,0.8)' : 'rgba(220,60,60,0.8)';
+      ctx.fillRect(wx-4, wy1, 8, wy2-wy1);
+    } else if (isMozi) {
+      drawMoziWall(wx, wy1, wx, wy2);
+    } else {
+      drawLubanWall(wx, wy1, wx, wy2);
+    }
+  }
+}
+
+function drawBoard() {
+  ctx.clearRect(0, 0, CANVAS_W, canvas.height);
+  drawScene();
+}
+
+// =====================================================================
+// UI UPDATES
+// =====================================================================
+function updateUI() {
+  // Wall pips
+  const mw = document.getElementById('mozi-walls');
+  mw.innerHTML = '';
+  for (let i=0;i<10;i++) {
+    const pip = document.createElement('div');
+    pip.className = 'wall-pip' + (i < moziWalls ? ' active-mozi' : '');
+    mw.appendChild(pip);
+  }
+  const lw = document.getElementById('luban-walls');
+  lw.innerHTML = '';
+  for (let i=0;i<10;i++) {
+    const pip = document.createElement('div');
+    pip.className = 'wall-pip' + (i < lubanWalls ? ' active-luban' : '');
+    lw.appendChild(pip);
+  }
+
+  const ti = document.getElementById('turn-indicator');
+  if (gameOver) { ti.textContent = '游戏结束'; return; }
+  ti.textContent = currentTurn === 'mozi' ? '✦ 轮到墨翟 ✦' : '⚙ 公输班思考中…';
+
+  // Mode buttons only active during mozi's turn
+  const movBtn = document.getElementById('btn-move');
+  const walBtn = document.getElementById('btn-wall');
+  movBtn.disabled = currentTurn !== 'mozi';
+  walBtn.disabled = currentTurn !== 'mozi' || moziWalls <= 0;
+  movBtn.style.opacity = currentTurn === 'mozi' ? '1' : '0.5';
+  walBtn.style.opacity = (currentTurn === 'mozi' && moziWalls > 0) ? '1' : '0.5';
+}
+
+function setMode(m) {
+  playerMode = m;
+  wallPreview = null;
+  document.getElementById('btn-move').classList.toggle('selected', m==='move');
+  document.getElementById('btn-wall').classList.toggle('selected', m==='wall');
+  drawBoard();
+}
+
+// =====================================================================
+// PLAYER INPUT
+// =====================================================================
+function canvasClick(e) {
+  if (gameOver || currentTurn !== 'mozi') return;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = CANVAS_W / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const px = (e.clientX - rect.left) * scaleX;
+  const PAD_TOP = +canvas.dataset.padTop || 0;
+  const py = (e.clientY - rect.top) * scaleY - PAD_TOP;
+
+  if (playerMode === 'move') {
+    const cell = posFromPixel(px, py);
+    if (!cell) return;
+    const dr = cell.r - moziPos.r;
+    const dc = cell.c - moziPos.c;
+    if (Math.abs(dr)+Math.abs(dc) !== 1) return;
+    if (!canMove(moziPos, dr, dc, hWalls, vWalls)) return;
+    if (lubanPos.r === cell.r && lubanPos.c === cell.c) return;
+    moziPos = cell;
+    endPlayerTurn();
+  } else {
+    // Place wall
+    if (!wallPreview || !wallPreview.valid) return;
+    const { type, r, c } = wallPreview;
+    if (!isWallValid(type, r, c)) return;
+    if (type === 'h') hWalls.add(wallKey('h',r,c));
+    else vWalls.add(wallKey('v',r,c));
+    moziWallSet.add(wallKey(type,r,c));
+    moziWalls--;
+    wallPreview = null;
+    endPlayerTurn();
+  }
+}
+
+function canvasMouseMove(e) {
+  if (gameOver || currentTurn !== 'mozi' || playerMode !== 'wall') return;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = CANVAS_W / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const px = (e.clientX - rect.left) * scaleX;
+  const PAD_TOP = +canvas.dataset.padTop || 0;
+  const py = (e.clientY - rect.top) * scaleY - PAD_TOP;
+
+  const wall = wallFromPixel(px, py);
+  if (!wall) { wallPreview = null; drawBoard(); return; }
+
+  // Determine orientation by which is closer
+  // Recalculate: prefer horizontal if cursor is closer to horizontal gap
+  const { r, c } = wall;
+  // Try both and pick nearest
+  const hy = MARGIN + r * STEP + CELL + GAP/2;
+  const hx = MARGIN + c * STEP + STEP;
+  const vx = MARGIN + c * STEP + CELL + GAP/2;
+  const vy = MARGIN + r * STEP + STEP;
+  const dh = Math.hypot(px-hx, py-hy);
+  const dv = Math.hypot(px-vx, py-vy);
+  const type = dh < dv ? 'h' : 'v';
+
+  const valid = (moziWalls > 0) && isWallValid(type, r, c);
+  wallPreview = { type, r, c, valid };
+  drawBoard();
+}
+
+canvas.addEventListener('click', canvasClick);
+canvas.addEventListener('mousemove', canvasMouseMove);
+canvas.addEventListener('mouseleave', () => { wallPreview = null; if (!gameOver) drawBoard(); });
+
+// =====================================================================
+// TURN MANAGEMENT
+// =====================================================================
+function endPlayerTurn() {
+  drawBoard();
+  updateUI();
+  if (checkWin()) return;
+  currentTurn = 'luban';
+  updateUI();
+  setTimeout(doAITurn, 600);
+}
+
+function endAITurn() {
+  drawBoard();
+  updateUI();
+  if (checkWin()) return;
+  currentTurn = 'mozi';
+  updateUI();
+  drawBoard();
+}
+
+function checkWin() {
+  if (moziPos.r === 0) { showResult('win'); gameOver=true; return true; }
+  if (lubanPos.r === 8) { showResult('lose'); gameOver=true; return true; }
+  // Check draw: both fully blocked
+  const moziMoves = [[-1,0],[1,0],[0,-1],[0,1]].filter(([dr,dc])=>canMove(moziPos,dr,dc,hWalls,vWalls)&&!(lubanPos.r===moziPos.r+dr&&lubanPos.c===moziPos.c+dc));
+  const lubanMoves = [[-1,0],[1,0],[0,-1],[0,1]].filter(([dr,dc])=>canMove(lubanPos,dr,dc,hWalls,vWalls)&&!(moziPos.r===lubanPos.r+dr&&moziPos.c===lubanPos.c+dc));
+  if (moziMoves.length===0 && lubanMoves.length===0) { showResult('draw'); gameOver=true; return true; }
+  return false;
+}
+
+function showResult(type) {
+  const titles = { win:'🎉 胜利！', lose:'😢 失败……', draw:'🤝 平局' };
+  const bodies = {
+    win: `恭喜！你成功俘虏了公输班的木头鸟！在公输班的苦苦哀求下，你放弃了拿它烧柴的打算。作为赎金，公输班不得不帮你抄了一个月的书。美哉，美哉！`,
+    lose: `噢不，公输班成功潜入了你的书房，在你珍贵的笔记上画了个大大的👎，旁书"公输班到此一游"。现在，你只好一边忍受木头鸟在你的房顶上嘎嘎大笑，一边重新誊抄你的笔记了……`,
+    draw: `你们势均力敌，大战八百回合，墨线和云梯横七竖八地把小小的庭院挤得水泄不通。终于，你们把自己关在了院子里，进退两难。你们面面相觑，饿着肚子等了三天三夜，终于被路过的弟子们捞了出来。`
+  };
+  const bar = document.getElementById('result-title-bar');
+  bar.textContent = titles[type];
+  bar.className = 'result-title-bar ' + type;
+  document.getElementById('result-body').textContent = bodies[type];
+  document.getElementById('result-overlay').classList.add('show');
+}
+
+// =====================================================================
+// AI (HEURISTIC)
+// =====================================================================
+function doAITurn() {
+  if (gameOver) return;
+
+  const lubanGoal = 8;
+  const moziGoal  = 0;
+
+  const ld = bfsDistance(lubanPos, lubanGoal, hWalls, vWalls, moziPos);
+  const md = bfsDistance(moziPos,  moziGoal,  hWalls, vWalls, lubanPos);
+
+  // Decision: if mozi is ahead (shorter path) and luban has walls, try to block
+  const shouldBlock = (md <= ld + 1) && lubanWalls > 0 && md < Infinity;
+
+  if (shouldBlock) {
+    const bestWall = findBestBlockingWall();
+    if (bestWall) {
+      const { type, r, c } = bestWall;
+      if (type === 'h') hWalls.add(wallKey('h',r,c));
+      else vWalls.add(wallKey('v',r,c));
+      lubanWallSet.add(wallKey(type,r,c));
+      lubanWalls--;
+      endAITurn();
+      return;
+    }
+  }
+
+  // Move along BFS path
+  const path = bfsPath(lubanPos, lubanGoal, hWalls, vWalls, moziPos);
+  if (path && path.length > 1) {
+    lubanPos = { r: path[1].r, c: path[1].c };
+  } else {
+    // Fallback: any valid move
+    const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+    for (const [dr,dc] of dirs) {
+      if (canMove(lubanPos,dr,dc,hWalls,vWalls)) {
+        const nr = lubanPos.r+dr, nc = lubanPos.c+dc;
+        if (!(moziPos.r===nr&&moziPos.c===nc)) { lubanPos={r:nr,c:nc}; break; }
+      }
+    }
+  }
+  endAITurn();
+}
+
+function findBestBlockingWall() {
+  // Find wall placement that maximizes (moziNewDist - moziOldDist) while keeping luban path valid
+  const moziGoal = 0;
+  const lubanGoal = 8;
+  const moziBaseDist = bfsDistance(moziPos, moziGoal, hWalls, vWalls, lubanPos);
+
+  let best = null;
+  let bestGain = 0;
+
+  // Get mozi's current path to prioritize walls along it
+  const moziPath = bfsPath(moziPos, moziGoal, hWalls, vWalls, lubanPos);
+  const pathSet = new Set();
+  if (moziPath) moziPath.forEach(p => pathSet.add(`${p.r}_${p.c}`));
+
+  // Try walls near mozi's path
+  const candidates = [];
+  for (let r = 0; r < ROWS-1; r++) {
+    for (let c = 0; c < COLS-1; c++) {
+      // Prioritize walls near mozi's path
+      const priority = pathSet.has(`${r}_${c}`) || pathSet.has(`${r+1}_${c}`) || pathSet.has(`${r}_${c+1}`) ? 2 : 1;
+      candidates.push({ type:'h', r, c, priority });
+      candidates.push({ type:'v', r, c, priority });
+    }
+  }
+  candidates.sort((a,b) => b.priority - a.priority);
+
+  // Evaluate top candidates
+  for (const { type, r, c } of candidates.slice(0, 80)) {
+    if (!isWallValid(type, r, c)) continue;
+    const testH = new Set(hWalls);
+    const testV = new Set(vWalls);
+    if (type === 'h') testH.add(wallKey('h',r,c));
+    else testV.add(wallKey('v',r,c));
+    const newMoziDist = bfsDistance(moziPos, moziGoal, testH, testV, lubanPos);
+    const newLubanDist = bfsDistance(lubanPos, lubanGoal, testH, testV, moziPos);
+    if (newLubanDist === Infinity) continue; // don't block ourselves
+    const gain = newMoziDist - moziBaseDist;
+    if (gain > bestGain) { bestGain = gain; best = { type, r, c }; }
+  }
+  return best;
+}
+
+// =====================================================================
+// STARTUP
+// =====================================================================
+resizeForScene();
+canvas.style.width = '580px';
+canvas.style.height = (580 * canvas.height / CANVAS_W) + 'px';
+showDialog(0);
+</script>
+</body>
+</html>
